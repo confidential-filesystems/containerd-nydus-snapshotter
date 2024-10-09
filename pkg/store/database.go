@@ -102,10 +102,10 @@ func updateObject(bucket *bolt.Bucket, key string, obj interface{}) error {
 	return nil
 }
 
-func putObject(bucket *bolt.Bucket, key string, obj interface{}) error {
+func putObject(bucket *bolt.Bucket, key string, obj interface{}, overwrite bool) error {
 	keyBytes := []byte(key)
 
-	if bucket.Get(keyBytes) != nil {
+	if !overwrite && bucket.Get(keyBytes) != nil {
 		return errors.Errorf("object with key %q already exists", key)
 	}
 
@@ -206,7 +206,7 @@ func (db *Database) SaveDaemon(ctx context.Context, d *daemon.Daemon) error {
 		if err := getObject(bucket, d.ID(), &existing); err == nil {
 			return errdefs.ErrAlreadyExists
 		}
-		return putObject(bucket, d.ID(), d.States)
+		return putObject(bucket, d.ID(), d.States, false)
 	})
 }
 
@@ -283,7 +283,7 @@ func (db *Database) AddRafsInstance(ctx context.Context, instance *rafs.Rafs) er
 	return db.db.Update(func(tx *bolt.Tx) error {
 		bucket := getInstancesBucket(tx)
 
-		return putObject(bucket, instance.SnapshotID, instance)
+		return putObject(bucket, instance.SnapshotID, instance, true)
 	})
 }
 
